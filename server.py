@@ -2,10 +2,6 @@ import socket
 import threading
 import argparse
 
-# Define the server address and port
-# NODE1_ADDRESS = '192.168.1.101'  # Replace this with the desired IP address of Node 1
-
-# Store liked counts (initially zero)
 liked_count = 0
 lock = threading.Lock()
 
@@ -21,28 +17,59 @@ def handle_client(client_socket):
         with lock:
             liked_count += 1
             print(f"Received like. Liked count: {liked_count}")
-        
-        # Inform other nodes about the change (synchronization logic needed here)
+            send_notifications(OTHER_PORTS, 1)
 
     client_socket.close()
 
 
+def send_notifications(other_ports, liked_count_change):
+    for port in other_ports:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as node_socket:
+            node_socket.connect(('localhost', port))
+            node_socket.sendall(str(liked_count_change).encode())
+            print(f"Sent notification to node on port {port}")
 
-# Rest of the code remains the same as before...
-# Replace occurrences of SERVER_ADDRESS with NODE1_ADDRESS
+
+def receive_notifications(port):
+    global liked_count
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+        server_socket.bind(('localhost', port))
+        server_socket.listen(5)
+        print(f"Notification server listening on port {port}")
+
+        while True:
+            client_socket, client_address = server_socket.accept()
+            print(f"Notification connection from {client_address}")
+
+            data = client_socket.recv(1024)
+            if data:
+                with lock:
+                    liked_count += int(data.decode())
+                    print(f"Received notification. Liked count: {liked_count}")
+
+            client_socket.close()
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Server for handling 'like' requests")
-    parser.add_argument('port', type=int, help="Port number for the server")
+    parser = argparse.ArgumentParser(description="Server for handling 'like' requests and notifications")
+    parser.add_argument('port', type=int, help="Port number for handling client requests")
+    parser.add_argument('notification_port', type=int, help="Port number for receiving notifications")
+    parser.add_argument('other_ports', nargs='+', type=int, help="Ports to send notifications")
     args = parser.parse_args()
 
     SERVER_PORT = args.port
-    
-    
+    NOTIFICATION_PORT = args.notification_port
+    OTHER_PORTS = args.other_ports
+
+    # Start thread to listen for notifications from other nodes
+    notification_thread = threading.Thread(target=receive_notifications, args=(NOTIFICATION_PORT,))
+    notification_thread.start()
+
+    # Start server to handle client requests
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(('localhost', SERVER_PORT))
     server.listen(5)
-    print(f"Node 1 server listening on port {SERVER_PORT}")
+    print(f"Server listening on port {SERVER_PORT}")
 
     while True:
         client_socket, client_address = server.accept()

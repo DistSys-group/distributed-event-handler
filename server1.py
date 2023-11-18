@@ -1,9 +1,9 @@
 import socket
 import threading
+import argparse
 
 # Define the server address and port
 # NODE1_ADDRESS = '192.168.1.101'  # Replace this with the desired IP address of Node 1
-NODE1_PORT = 5001
 
 # Store liked counts (initially zero)
 liked_count = 0
@@ -32,10 +32,17 @@ def handle_client(client_socket):
 # Replace occurrences of SERVER_ADDRESS with NODE1_ADDRESS
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Server for handling 'like' requests")
+    parser.add_argument('port', type=int, help="Port number for the server")
+    args = parser.parse_args()
+
+    SERVER_PORT = args.port
+    
+    
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(('localhost', NODE1_PORT))
+    server.bind(('localhost', SERVER_PORT))
     server.listen(5)
-    print(f"Node 1 server listening on port {NODE1_PORT}")
+    print(f"Node 1 server listening on port {SERVER_PORT}")
 
     while True:
         client_socket, client_address = server.accept()

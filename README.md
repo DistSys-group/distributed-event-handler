@@ -27,3 +27,16 @@ Project documents are at <Link to Shared drive>
 Project plan 21.11.2023 23:59
 Project Demo 13.12.2023
 Report 15.12.2023
+
+## Usage instructions
+Open a terminal window for each client and server and run the following commands: 
+server: `python3 server.py <RECEIVE_CLIENT_REQUESTS_PORT> <RECEIVE NOTIFICATIONS_PORT> <SEND_NOTIFICATIONS_TO_PORT>`.  
+You may give multiple ports in `SEND_NOTIFICATIONS_TO_PORT`, just separate them with a space. 
+
+client: `python3 client.py <SERVER_PORT>`
+
+Example:
+server 1: `python3 server.py 5001 5002 5004`
+server 2: `python3 server.py 5003 5004 5002`
+client1: `python3 client.py 5001`
+client2: `python3 client.py 5003`

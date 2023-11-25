@@ -68,7 +68,7 @@ if __name__ == "__main__":
     # Start server to handle client requests
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(('localhost', SERVER_PORT))
-    server.listen(5)
+    server.listen(5) # The number 5 here is the max amount of incoming connections (clients)
     print(f"Server listening on port {SERVER_PORT}")
 
     while True:

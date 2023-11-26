@@ -48,7 +48,7 @@ def connect_to_leader():
     print(f"Connected to leader node at {LEADER_ADDRESS}")
 
     # Inform the leader that this is a new server node
-    new_node_info = f'join_request\nnew_node:localhost:{notification_port}'  # Replace with appropriate node info
+    new_node_info = f'join_request\nnew_node:localhost:{notification_port}:{own_port}'  # Replace with appropriate node info
     client.sendall(new_node_info.encode())
 
     # Receive node information from the leader

@@ -6,7 +6,7 @@ import argparse
 lock = threading.Lock()
 like_count = 0
 LEADER_ADDRESS = ('localhost', 5001)
-own_port = 0
+SERVER_PORT = 0
 notification_port = 0
 other_nodes = {}
 
@@ -48,7 +48,7 @@ def connect_to_leader():
     print(f"Connected to leader node at {LEADER_ADDRESS}")
 
     # Inform the leader that this is a new server node
-    new_node_info = f'join_request\nnew_node:localhost:{notification_port}:{own_port}'  # Replace with appropriate node info
+    new_node_info = f'join_request\nnew_node:localhost:{notification_port}:{SERVER_PORT}'  # Replace with appropriate node info
     client.sendall(new_node_info.encode())
 
     # Receive node information from the leader
@@ -83,9 +83,9 @@ def handle_leader_notification(data):
 
 def handle_client_thread():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(('localhost', own_port))
+    server.bind(('localhost', SERVER_PORT))
     server.listen(5) # The number 5 here is the max amount of incoming connections (clients)
-    print(f"Server listening on port {own_port}")
+    print(f"Server listening on port {SERVER_PORT}")
 
     while True:
         client_socket, client_address = server.accept()
@@ -108,7 +108,7 @@ def handle_notifications_thread():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Server for handling 'like' requests and notifications")
-    own_port = int(input("Give a port number for receiving messages from clients:"))
+    SERVER_PORT = int(input("Give a port number for receiving messages from clients:"))
     notification_port = int(input("Give a port number for receiving notifications:"))
     
     connect_to_leader()

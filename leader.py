@@ -1,6 +1,7 @@
 import socket
 import threading
 import random
+import sys
 
 LEADER_ADDRESS = ('localhost', 5001)
 
@@ -8,6 +9,7 @@ LEADER_ADDRESS = ('localhost', 5001)
 list_of_servers = {}
 id_count = 0
 available_servers = {}
+number_of_clients = {}
 
 def handle_new_server(node_socket, notifications_port, own_port):
     add_new_node_to_list(notifications_port, own_port)
@@ -70,14 +72,29 @@ def add_new_node_to_list(notifications_port, own_port):
     ip = 'localhost' # Todo: add possibility to configure other addresses
     list_of_servers[node_id] = (ip, int(notifications_port))
     available_servers[node_id] = (ip, int(own_port))
+    number_of_clients[node_id] = 0;
     print(f"Added new server: {node_id} - {ip}:{notifications_port}")
+    
+def get_available_server():
+    min_clients = sys.maxsize
+    selected = None
+    for node in number_of_clients:
+        if number_of_clients[node] < min_clients:
+            min_clients = number_of_clients[node]       
+            selected = node
+    return selected    
 
 def send_available_server(client_socket):
-    i = random.randint(1, len(available_servers)) # randomly selects a server to server to serve the client with
+    i = get_available_server()
 
-    node_info = str(available_servers[i])
-    client_socket.sendall(node_info.encode())
-    print("Sent available server to client")
+    if i is not None:
+        number_of_clients[i] += 1
+        node_info = str(available_servers[i])
+        client_socket.sendall(node_info.encode())
+        print("Sent available server to client")
+    else:
+        client_socket.close()
+        print("No servers available")
 
 # todo, a method that determines which servers are available for client
 

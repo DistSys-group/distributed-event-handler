@@ -2,12 +2,17 @@ import socket
 import argparse
 import time
 
+LEADER_ADDRESS = ('localhost', 5001)
+SERVER_ADDRESS = None
+
 def push_like_button():
     # Connect to Node 1
-    available_server = get_available_server()
-    if available_server is not None:
+    global SERVER_ADDRESS
+    if SERVER_ADDRESS is None:
+        SERVER_ADDRESS = get_available_server()
+    if SERVER_ADDRESS is not None:
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.connect((available_server))  # Connect to localhost and Node's port
+        client.connect((SERVER_ADDRESS))  # Connect to localhost and Node's port
     
         # Send a 'like' request to the server
         client.sendall(b'like')
@@ -47,7 +52,7 @@ def main():
             amount_of_like_events = input("Enter amount of like events:")
             time.sleep(int(sleep))
             for x in range(int(amount_of_like_events)):
-                push_like_button(SERVER_PORT)
+                push_like_button()
                 time.sleep(0.01)
             print(f'Liked {amount_of_like_events} times')
         else:
@@ -56,5 +61,7 @@ def main():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Client for sending 'like' requests")
     LEADER_PORT = 5001
+    SERVER_ADDRESS = get_available_server()
+    print(f'Server address: {SERVER_ADDRESS}')
 
     main()

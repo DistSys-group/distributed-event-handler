@@ -97,6 +97,7 @@ def handle_client_thread():
 
     while True:
         client_socket, client_address = server.accept()
+        # Not working, clients connects from different port each time
         if not client_address in live_clients:
             live_clients.append(client_address)
         print(f"Connection from {client_address}")

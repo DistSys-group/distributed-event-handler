@@ -50,15 +50,13 @@ def health_check():
             if received_data.startswith("alive"):
                 client_count = int(received_data.split(':')[1])
                 list_of_servers[server_id].clients = client_count
-                print(list_of_servers[server_id])
-                print(list_of_servers[server_id].clients)
+            #Todo remove server if it does not answer
         finally:
             client_socket.close()
 
 def health_check_timer():
     count = 0
     while True:
-        print(f'Count: {count}')
         if count > 20:
             health_check()
             count = 0

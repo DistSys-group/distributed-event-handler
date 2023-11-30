@@ -84,7 +84,7 @@ def handle_leader_notification(data):
 def handle_client_thread():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(('localhost', own_port))
-    server.listen(5)
+    server.listen(5) # The number 5 here is the max amount of incoming connections (clients)
     print(f"Server listening on port {own_port}")
 
     while True:

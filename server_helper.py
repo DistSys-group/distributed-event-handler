@@ -11,31 +11,36 @@ def parse_my_id_from_message(data):
 
 
 def send_message_to_all_nodes(message, list_of_servers: [Server]):
-  for server_id, server in list_of_servers.items():
-        print(f'Notification to address {server.address}')
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        print(f"Connecting to {server.address}:{server.notification_port}")
-        client_socket.connect((server.address, int(server.notification_port)))
-        client_socket.sendall(message.encode())
-        client_socket.close()
+  for node_id, server in list_of_servers.items():
+        try:
+          client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+          print(f"Connecting to {server.address}:{server.notification_port}")
+          client_socket.connect((server.address, int(server.notification_port)))
+          client_socket.sendall(message.encode())
+          client_socket.close()
+        except Exception as err:
+           print(f"Error connection to node {node_id}")
+           return node_id
+  return None
 
 
-def send_message_to_leader_node(message, leader_address):
-  leader_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  leader_socket.connect(leader_address)
-  leader_socket.sendall(message.encode())
-  leader_socket.close()
+def send_message_to_one_node(message, address):
+  node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  node_socket.connect(address)
+  node_socket.sendall(message.encode())
+  node_socket.close()
 
 
-def update_server_list(other_nodes, data, my_notification_port):
+def update_server_list(data, my_notification_port):
+  server_list = {}
   title, nodes_string = data.split('\n', 1)
 
   nodes = nodes_string.split('\n')
   for node in nodes:
     node_id, ip, port = node.split(':')
     if int(port) != my_notification_port:
-        other_nodes[node_id] = Server(node_id, ip, port, None, "alive")
-  return other_nodes
+        server_list[node_id] = Server(node_id, ip, port, None, "alive")
+  return server_list
 
 
 def portsAreValid(leader_port, client_port, notifications_port):

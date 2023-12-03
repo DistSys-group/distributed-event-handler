@@ -1,7 +1,7 @@
 import socket
 import threading
 import argparse
-from server_helper import parse_my_id_from_message, send_message_to_all_nodes, send_message_to_leader_node, update_server_list, portsAreValid
+from server_helper import parse_my_id_from_message, send_message_to_all_nodes, send_message_to_one_node, update_server_list, portsAreValid
 from server_class import Server
 import time
 
@@ -42,19 +42,19 @@ def send_notifications(other_nodes):
 
 def _update_likes():
     global like_count
-    print(f"Received like notification. Liked count: {like_count}")
     with lock:
         like_count += 1
+        print(f"Received like notification. Liked count: {like_count}")
 
 
 # Inform the leader that this is a new server node
 def connect_to_leader():
     new_node_info = f'join_request\nnew_node:localhost:{NOTIFICATION_PORT}:{SERVER_PORT}'  # Replace with appropriate node info
     try:
-        send_message_to_leader_node(new_node_info, LEADER_ADDRESS)
+        send_message_to_one_node(new_node_info, LEADER_ADDRESS)
         print(f"Connected to leader node at {LEADER_ADDRESS}")
     except Exception as err:
-        print(f"Unexpected {err=}, {type(err)=}")
+        print(f"Could not find or connect to leader node: {err=}, {type(err)=}")
     
     
 def handle_notifications(other_node_socket):
@@ -76,7 +76,7 @@ def respond_to_healthcheck():
     alive_message = f'alive\nmy_node_id:{my_id}:client_count:{len(live_clients)}'
     print(f"Sending health status to leader node at {LEADER_ADDRESS}")
     try:
-        send_message_to_leader_node(alive_message, LEADER_ADDRESS)
+        send_message_to_one_node(alive_message, LEADER_ADDRESS)
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
     
@@ -90,7 +90,7 @@ def handle_leader_notification(data):
         print(f"My id is {my_id}")
     else: 
         # Parse the node information from the message
-        other_nodes = update_server_list(other_nodes, data, NOTIFICATION_PORT)
+        other_nodes = update_server_list(data, NOTIFICATION_PORT)
         print(f'Updated server nodes:')
         for node in other_nodes: 
             print(f"{node}: {str(other_nodes[node])}")
@@ -130,7 +130,7 @@ def handle_notifications_thread():
                 handle_notifications(notification_socket)
                 notification_socket.close() # Not sure if this has to be here...
     except Exception as err:
-        print("Error while starting notifications thread")
+        print(f"Error in the notifications thread: {err}")
 
 
 def userInterface():

@@ -3,7 +3,7 @@ import threading
 import sys
 import time
 from server_class import Server
-from server_helper import send_message_to_all_nodes
+from server_helper import send_message_to_all_nodes, send_message_to_one_node
 
 LEADER_ADDRESS = ('localhost', 5001)
 LEADER_PORT = 5001
@@ -14,17 +14,14 @@ id_count = 0
 
 def handle_new_server(node_socket, server_addr, notification_port, server_port):
     add_new_node_to_list(server_addr, notification_port, server_port)
-    inform_other_nodes_about_new_node()
+    inform_other_nodes_about_node_updates()
     node_socket.close()
 
 
 def send_accept_message(server: Server):
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #print(f"Connecting to {server.address}:{server.notification_port}")
     message = "server_info\n" + "server accepted\n"+'\n'.join([f"{server.node_id}:{server.address}:{server.client_port}:{server.notification_port}"])
-    client_socket.connect((server.address, server.notification_port))
-    client_socket.sendall(message.encode())
-    client_socket.close()
+    address = (server.address, server.notification_port)
+    send_message_to_one_node(message, (address))
 
 
 def send_node_information(node_socket):
@@ -39,13 +36,26 @@ def handle_node(node_socket):
 
 
 def health_check():            
-    print("Health check");
+    print("Health check")
     global list_of_servers
+    # Put first all servers to dead status
+    for node in list_of_servers:
+        list_of_servers[node].status = "dead"
     message = "health_check\n"    
-    # TODO : put "dead" to all nodes and after alive messages make them alive again"
-    # Then check periodically the status of the servers, maybe before starting the health check
-    send_message_to_all_nodes(message, list_of_servers)
+    return_val = send_message_to_all_nodes(message, list_of_servers)
+    if (return_val is not None): 
+        remove_dead_node(return_val)
+    # Then wait 5 second and then check the health again
+    time.sleep(5)
+    for node in list_of_servers:
+        if list_of_servers[node].status == "dead":
+          remove_dead_node(node)
 
+
+def remove_dead_node(node_id):
+    list_of_servers.pop(node_id)
+    print(f"Node {node_id} is dead. Removed it from the list.")
+    inform_other_nodes_about_node_updates()
 
 def health_check_timer():
     count = 0
@@ -57,10 +67,13 @@ def health_check_timer():
         time.sleep(5)
 
 
-def inform_other_nodes_about_new_node():
+def inform_other_nodes_about_node_updates():
     # Inform all existing servers about the updated node information
     updated_node_info = "server_info\n" + '\n'.join([f"{server_id}:{server.address}:{server.notification_port}" for server_id, server in list_of_servers.items()])
-    send_message_to_all_nodes(updated_node_info, list_of_servers)
+    try:
+      send_message_to_all_nodes(updated_node_info, list_of_servers)
+    except Exception as err:
+      print(f"Error occured while sending node info: {err}")
 
 
 def leader_server():

@@ -1,6 +1,5 @@
 import socket
 import threading
-import random
 import sys
 import time
 from server_class import Server

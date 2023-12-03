@@ -15,8 +15,8 @@ other_nodes = {}
 live_clients = []
 my_id = 0
 
-notifications_thread_status = "dead"
-client_thread_status = "dead"
+notifications_thread_status = "Not connected"
+client_thread_status = "Not connected"
 
 def handle_client(client_socket):
     global like_count
@@ -113,7 +113,7 @@ def handle_client_thread():
             print(f"Connection from {client_address}")
             handle_client(client_socket)
     except Exception as err:
-        print("Error while creating client thread")
+        print("Error while starting client thread")
 
 
 def handle_notifications_thread():
@@ -125,38 +125,41 @@ def handle_notifications_thread():
             print(f"Notification server listening on port {NOTIFICATION_PORT}")
             notifications_thread_status = "alive"
             while True:
-                other_node_socket, other_node_address = server_socket.accept()
+                notification_socket, other_node_address = server_socket.accept()
                 print(f"Notification connection from {other_node_address}")
-                handle_notifications(other_node_socket)
-                other_node_socket.close() # Not sure if this has to be here...
+                handle_notifications(notification_socket)
+                notification_socket.close() # Not sure if this has to be here...
     except Exception as err:
-        print("Error")
+        print("Error while starting notifications thread")
+
+
+def userInterface():
+    global LEADER_ADDRESS, SERVER_PORT, NOTIFICATION_PORT
+    SERVER_PORT = int(input("Give a port number for receiving messages from clients:"))
+    NOTIFICATION_PORT = int(input("Give a port number for receiving notifications:"))
+    tryToConnect()
 
 
 def tryToConnect():
-    global LEADER_ADDRESS, SERVER_PORT, NOTIFICATION_PORT
     if portsAreValid(LEADER_ADDRESS[1], SERVER_PORT, NOTIFICATION_PORT):
         notification_thread = threading.Thread(target=handle_notifications_thread, args=())
         notification_thread.start()
     
         client_thread = threading.Thread(target=handle_client_thread, args=())
         client_thread.start()
-    # Wait that the threads are ready
-    time.sleep(5)
-    if notifications_thread_status == "alive" and client_thread_status == "alive":
-        status = "ok"
-        connect_to_leader()
-        return status
+        # Wait that the threads are ready
+        print("Waiting for 5 seconds to start the threads")
+        time.sleep(5)
+        if notifications_thread_status == "alive" and client_thread_status == "alive":
+            connect_to_leader()
+        else:
+            print("Threads did not start. Try giving another ports.")
+            userInterface()
     else:
-        print("Cannot contact the leader before threads are ok")
-        SERVER_PORT = int(input("Try again! Give a port number for receiving messages from clients:"))
-        NOTIFICATION_PORT = int(input("Try again! Give a port number for receiving notifications:"))
-        tryToConnect()
+        userInterface()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Server for handling 'like' requests and notifications")
-    SERVER_PORT = int(input("Give a port number for receiving messages from clients:"))
-    NOTIFICATION_PORT = int(input("Give a port number for receiving notifications:"))
-    tryToConnect()
+    userInterface()
     

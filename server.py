@@ -1,7 +1,7 @@
 import socket
 import threading
 import argparse
-from server_helper import parse_my_id_from_message
+from server_helper import parse_my_id_from_message, send_message_to_all_nodes, send_message_to_leader_node
 from server_class import Server
 
 
@@ -33,34 +33,26 @@ def handle_client(client_socket):
 
 # Todo: Modify the message to contain more info (timestamp, node_id)
 def send_notifications(other_nodes):
-    for node in other_nodes:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as node_socket:
-            print(f"sending notification to {node}")
-            node_socket.connect((other_nodes[node].address, int(other_nodes[node].notification_port)))
-            node_socket.sendall("Like event".encode())
-            print(f"Sent notification to node {node}")
+    message = "Like event"
+    send_message_to_all_nodes(message, other_nodes)
 
 
 def _update_likes():
     global like_count
+    print(f"Received notification. Liked count: {like_count}")
     with lock:
         like_count += 1
 
-
+# Inform the leader that this is a new server node
 def connect_to_leader():
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect(LEADER_ADDRESS)
-    print(f"Connected to leader node at {LEADER_ADDRESS}")
-
-    # Inform the leader that this is a new server node
     new_node_info = f'join_request\nnew_node:localhost:{notification_port}:{SERVER_PORT}'  # Replace with appropriate node info
-    client.sendall(new_node_info.encode())
-
-    # Receive node information from the leader
-    # node_info = client.recv(1024).decode()
-    client.close()
-
-
+    try:
+        send_message_to_leader_node(new_node_info, LEADER_ADDRESS)
+        print(f"Connected to leader node at {LEADER_ADDRESS}")
+    except Exception as err:
+        print(f"Unexpected {err=}, {type(err)=}")
+    
+    
 def handle_notifications(other_node_socket):
     global like_count
     data = other_node_socket.recv(1024)
@@ -72,20 +64,14 @@ def handle_notifications(other_node_socket):
 	        respond_to_healthcheck()        
         else: # Like event
             _update_likes()
-            print(f"Received notification. Liked count: {like_count}")
 
 
 def respond_to_healthcheck():
     print("Received health check from leader")
     global live_clients
     alive_message = f'alive\nmy_node_id:{my_id}:client_count:{len(live_clients)}'
-
-    leader_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    leader_socket.connect(LEADER_ADDRESS)
     print(f"Sending health status to leader node at {LEADER_ADDRESS}")
-    leader_socket.sendall(alive_message.encode())
-
-    leader_socket.close()
+    send_message_to_leader_node(alive_message, LEADER_ADDRESS)
     
 
 def handle_leader_notification(data):
@@ -104,7 +90,7 @@ def handle_leader_notification(data):
         for node in nodes:
             node_id, ip, port = node.split(':')
             if int(port) != notification_port:
-                other_nodes[node_id] = Server(node_id, ip, port, None)
+                other_nodes[node_id] = Server(node_id, ip, port, None, "alive")
 
         print(f'Updated server nodes:')
         for node in other_nodes: 

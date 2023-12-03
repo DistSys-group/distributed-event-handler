@@ -1,7 +1,7 @@
 import socket
 import threading
 import argparse
-from server_helper import parse_my_id_from_message, send_message_to_all_nodes, send_message_to_one_node, update_server_list, portsAreValid
+from server_helper import parse_my_id_from_message, send_message_to_all_nodes, send_message_to_one_node, update_server_list, ports_are_valid
 from server_class import Server
 import time
 
@@ -141,7 +141,7 @@ def userInterface():
 
 
 def tryToConnect():
-    if portsAreValid(LEADER_ADDRESS[1], SERVER_PORT, NOTIFICATION_PORT):
+    if ports_are_valid(LEADER_ADDRESS[1], SERVER_PORT, NOTIFICATION_PORT):
         notification_thread = threading.Thread(target=handle_notifications_thread, args=())
         notification_thread.start()
     

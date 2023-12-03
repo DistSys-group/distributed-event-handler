@@ -43,7 +43,7 @@ def update_server_list(data, my_notification_port):
   return server_list
 
 
-def portsAreValid(leader_port, client_port, notifications_port):
+def ports_are_valid(leader_port, client_port, notifications_port):
    print(f"leader: {leader_port}, client: {client_port}, notification: {notifications_port}")
    if client_port == leader_port or notifications_port == leader_port:
       print(f"Leader in port {leader_port}. Pick another port")
@@ -54,3 +54,13 @@ def portsAreValid(leader_port, client_port, notifications_port):
    else:
       print(f"Ports {client_port} and {notifications_port} are valid")
       return True
+   
+
+def handle_alive_message(list_of_servers, data):
+  parts = data.split(':')
+  server_id = int(parts[1])
+  client_count = int(parts[3])
+  list_of_servers[server_id].clients = client_count
+  print(f"Server {server_id} is alive ")
+  list_of_servers[server_id].status = "alive"
+  return list_of_servers

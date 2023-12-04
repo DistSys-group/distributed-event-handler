@@ -43,3 +43,14 @@ Report 15.12.2023
   `python3 client.py``
   * Leader will give the client a port number for an available server
 4) Type `like` to send a like event which will be distributed across all server nodes. 
+
+## Virtual env, packages and code style
+
+Run `python3 -m venv venv` to create a python virtual environment.  
+Run `source venv/bin/activate` to start the virtual env.
+Run `python3 -m pip install -r requirements.txt` to install dependencies.
+
+If you install new packages run `python3 -m pip freeze > requirements.txt` after installing.  
+
+To check for code style errors run `pylint <file or directory to check>`.  
+To automatically lint the code run `black <file or directory to check>`. 

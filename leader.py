@@ -50,13 +50,9 @@ def remove_dead_node(node_id):
 
 
 def health_check_timer():
-    count = 0
-    while True:
-        if count > 2:
-            health_check()
-            count = 0
-        count += 1
-        time.sleep(5)
+  while True:  
+    time.sleep(20)
+    health_check()
 
 
 def inform_other_nodes_about_node_updates():
@@ -122,11 +118,11 @@ def get_available_server():
 
 
 def send_available_server(client_socket):
-    i = get_available_server()
+    server_id = get_available_server()
 
-    if i is not None:
-        list_of_servers[i].clients = list_of_servers[i].clients + 1
-        node_info = f"({list_of_servers[i].address}, {list_of_servers[i].client_port})"
+    if server_id is not None:
+        list_of_servers[server_id].clients = list_of_servers[server_id].clients + 1
+        node_info = f"({list_of_servers[server_id].address}, {list_of_servers[server_id].client_port})"
         client_socket.sendall(node_info.encode())
         print("Sent available server to client")
     else:

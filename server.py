@@ -133,14 +133,14 @@ def handle_notifications_thread():
         print(f"Error in the notifications thread: {err}")
 
 
-def userInterface():
+def user_interface():
     global LEADER_ADDRESS, SERVER_PORT, NOTIFICATION_PORT
     SERVER_PORT = int(input("Give a port number for receiving messages from clients:"))
     NOTIFICATION_PORT = int(input("Give a port number for receiving notifications:"))
-    tryToConnect()
+    try_to_connect()
 
 
-def tryToConnect():
+def try_to_connect():
     if ports_are_valid(LEADER_ADDRESS[1], SERVER_PORT, NOTIFICATION_PORT):
         notification_thread = threading.Thread(target=handle_notifications_thread, args=())
         notification_thread.start()
@@ -154,12 +154,12 @@ def tryToConnect():
             connect_to_leader()
         else:
             print("Threads did not start. Try giving another ports.")
-            userInterface()
+            user_interface()
     else:
-        userInterface()
+        user_interface()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Server for handling 'like' requests and notifications")
-    userInterface()
+    user_interface()
     

@@ -1,3 +1,4 @@
+import os
 import socket
 import threading
 import sys
@@ -5,7 +6,7 @@ import time
 from server_class import Server
 from server_helper import send_message_to_all_nodes, send_message_to_one_node, handle_alive_message
 
-LEADER_ADDRESS = ('localhost', 5001)
+LEADER_ADDRESS = (os.environ.get('LEADER_HOST') or 'localhost', 5001)
 LEADER_PORT = 5001
 
 # Dictionary to store information about other server nodes: {node_id: (ip_address, port)}

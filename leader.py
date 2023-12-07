@@ -3,7 +3,7 @@ import threading
 import sys
 import time
 from server_class import Server
-from server_helper import send_message_to_all_nodes, send_message_to_one_node, handle_alive_message
+from server_helper import send_message_to_all_nodes, send_message_to_one_node, handle_alive_message, handle_consensus_message
 
 LEADER_ADDRESS = ('localhost', 5001)
 LEADER_PORT = 5001
@@ -38,13 +38,46 @@ def health_check():
         remove_dead_node(return_val)
     # Then wait 5 second and then check the health again
     time.sleep(5)
-    for node in list_of_servers:
+    for node in list_of_servers.copy():
         if list_of_servers[node].status == "dead":
           remove_dead_node(node)
 
 
+def like_consensus():
+    print("Creating consensus of like amount according to leader")
+    global list_of_servers
+
+    message = "consensus_request\n"
+    send_message_to_all_nodes(message, list_of_servers)
+    max_likes = 0  #Max value of likes is the best estimate we can have of the like value
+    
+    # First we find the max value
+    for node in list_of_servers:
+        if max_likes < list_of_servers[node].likes:
+            max_likes = list_of_servers[node].likes
+
+    print("Like amount according to leader: {}".format(max_likes))
+
+    # Then we inform nodes about the correct like value
+    inform_nodes_about_consensus(max_likes)
+
+
+def inform_nodes_about_consensus(like_value):
+    message = "consensus_response\namount_of_likes:{}".format(like_value)
+    send_message_to_all_nodes(message, list_of_servers)
+    
+
+def consensus_check_timer():
+    while True:
+        time.sleep(20)  #low value for demonstration purposes
+        like_consensus()
+
+
+
+
+
 def remove_dead_node(node_id):
-    list_of_servers.pop(node_id)
+    del list_of_servers[node_id]
     print(f"Node {node_id} is dead. Removed it from the list.")
     inform_other_nodes_about_node_updates()
 
@@ -75,7 +108,8 @@ def handle_message(node_socket):
         send_available_server(node_socket)
     elif received_data.startswith("alive"):
         list_of_servers = handle_alive_message(list_of_servers, received_data)
-    
+    elif received_data.startswith("consensus_request_response"):
+        list_of_servers = handle_consensus_message(list_of_servers, received_data)
 
 def start_leader_server_thread():
     try:
@@ -134,3 +168,4 @@ def send_available_server(client_socket):
 if __name__ == "__main__":
     threading.Thread(target=start_leader_server_thread).start()
     threading.Thread(target=health_check_timer).start()
+    threading.Thread(target=consensus_check_timer).start()

@@ -65,7 +65,11 @@ def handle_notifications(other_node_socket):
         if decodedData.startswith("server_info"): # Means that a notification is coming from the leader
             handle_leader_notification(decodedData)
         elif decodedData.startswith("health_check"): # Health check message
-	        respond_to_healthcheck()        
+	        respond_to_healthcheck()
+        elif decodedData.startswith("consensus_request"):
+            respond_to_consensus_request()
+        elif decodedData.startswith("consensus_response"):
+            handle_consensus_response(decodedData)
         else: # Like event
             _update_likes()
 
@@ -79,7 +83,25 @@ def respond_to_healthcheck():
         send_message_to_one_node(alive_message, LEADER_ADDRESS)
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
+
+def respond_to_consensus_request():
+    print("Leader requested like amount")
+    global like_count
+    like_message = f'consensus_request_response\nmy_node_id:{my_id}:amount_of_likes:{like_count}'
+    print(f"Sending current value of likes to leader node at {LEADER_ADDRESS}")
+    try:
+        send_message_to_one_node(like_message, LEADER_ADDRESS)
+    except Exception as err:
+        print(f"Unexpected {err=}, {type(err)=}")
     
+def handle_consensus_response(data):
+    global like_count, my_id
+    parts = data.split(":")
+    like_value = int(parts[1])
+    if like_value > like_count:
+        print("Like value updated at {my_id} to {like_value}")
+        like_count = like_value
+
 
 def handle_leader_notification(data):
     global my_id

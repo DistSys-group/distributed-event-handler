@@ -64,3 +64,11 @@ def handle_alive_message(list_of_servers, data):
   print(f"Server {server_id} is alive ")
   list_of_servers[server_id].status = "alive"
   return list_of_servers
+
+def handle_consensus_message(list_of_servers, data):
+  parts = data.split(':')
+  server_id = int(parts[1])
+  like_count = int(parts[3])
+  list_of_servers[server_id].likes = like_count
+  print(f"Server {server_id} like count: {like_count} ")
+  return list_of_servers

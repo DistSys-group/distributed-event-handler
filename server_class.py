@@ -5,6 +5,7 @@ class Server:
         self.notification_port = notification_port
         self.client_port = client_port        
         self.clients = 0
+        self.likes = 0
         self.status = status
         
     def __str__(self):

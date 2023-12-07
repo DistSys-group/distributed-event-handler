@@ -1,8 +1,9 @@
+import os
 import socket
 import argparse
 import time
 
-LEADER_ADDRESS = ('localhost', 5001)
+LEADER_ADDRESS = (os.environ.get('LEADER_HOST') or 'localhost', 5001)
 SERVER_ADDRESS = None
 
 def push_like_button():
@@ -26,7 +27,7 @@ def push_like_button():
 def get_available_server():
      data = None
      with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-        client_socket.connect(('localhost', LEADER_PORT))
+        client_socket.connect((LEADER_ADDRESS))
         client_socket.sendall(str("server_request").encode())
         data = client_socket.recv(1024)
 
@@ -60,7 +61,6 @@ def main():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Client for sending 'like' requests")
-    LEADER_PORT = 5001
     SERVER_ADDRESS = get_available_server()
     print(f'Server address: {SERVER_ADDRESS}')
 

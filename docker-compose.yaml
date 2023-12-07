@@ -1,0 +1,34 @@
+services:
+  dist-sys-leader:
+    build:
+      context: .
+      dockerfile: Dockerfile.leader
+    ports:
+      - 5001:5001
+    working_dir: /app
+    environment:
+      - LEADER_HOST=dist-sys-leader
+
+  dist-sys-server-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    ports:
+      - 6001:6001
+      - 7001:7001
+    working_dir: /app
+    environment:
+      - LEADER_HOST=dist-sys-leader
+      - SERVER_HOST=dist-sys-server-1
+      - SERVER_PORT=6001
+      - NOTIFICATION_PORT=7001
+
+  dist-sys-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    ports:
+      - 8001:8001
+    working_dir: /app
+    environment:
+      - LEADER_HOST=dist-sys-leader

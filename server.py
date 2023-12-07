@@ -1,3 +1,4 @@
+import os
 import socket
 import threading
 import argparse
@@ -8,9 +9,10 @@ import time
 
 lock = threading.Lock()
 like_count = 0
-LEADER_ADDRESS = ('localhost', 5001)
-SERVER_PORT = 0
-NOTIFICATION_PORT = 0
+LEADER_ADDRESS = (os.environ.get('LEADER_HOST') or 'localhost', 5001)
+SERVER_HOST = os.environ.get('SERVER_HOST') or 'localhost'
+SERVER_PORT = int(os.environ.get('SERVER_PORT') or 0)
+NOTIFICATION_PORT = int(os.environ.get('NOTIFICATION_PORT') or 0)
 other_nodes = {}
 live_clients = []
 my_id = 0
@@ -49,7 +51,7 @@ def _update_likes():
 
 # Inform the leader that this is a new server node
 def connect_to_leader():
-    new_node_info = f'join_request\nnew_node:localhost:{NOTIFICATION_PORT}:{SERVER_PORT}'  # Replace with appropriate node info
+    new_node_info = f'join_request\nnew_node:{SERVER_HOST}:{NOTIFICATION_PORT}:{SERVER_PORT}'  # Replace with appropriate node info
     try:
         send_message_to_one_node(new_node_info, LEADER_ADDRESS)
         print(f"Connected to leader node at {LEADER_ADDRESS}")
@@ -61,7 +63,7 @@ def handle_notifications(other_node_socket):
     global like_count
     data = other_node_socket.recv(1024)
     if data:
-        decodedData = data.decode();
+        decodedData = data.decode()
         if decodedData.startswith("server_info"): # Means that a notification is coming from the leader
             handle_leader_notification(decodedData)
         elif decodedData.startswith("health_check"): # Health check message
@@ -135,8 +137,10 @@ def handle_notifications_thread():
 
 def user_interface():
     global LEADER_ADDRESS, SERVER_PORT, NOTIFICATION_PORT
-    SERVER_PORT = int(input("Give a port number for receiving messages from clients:"))
-    NOTIFICATION_PORT = int(input("Give a port number for receiving notifications:"))
+    if SERVER_PORT == 0:
+        SERVER_PORT = int(input("Give a port number for receiving messages from clients:"))
+    if NOTIFICATION_PORT == 0:
+        NOTIFICATION_PORT = int(input("Give a port number for receiving notifications:"))
     try_to_connect()
 
 

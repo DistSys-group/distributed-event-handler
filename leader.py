@@ -71,10 +71,7 @@ def consensus_check_timer():
     while True:
         time.sleep(20)  #low value for demonstration purposes
         like_consensus()
-
-
-
-
+        
 
 def remove_dead_node(node_id):
     del list_of_servers[node_id]
@@ -97,13 +94,13 @@ def inform_other_nodes_about_node_updates():
       print(f"Error occured while sending node info: {err}")
 
 
-def handle_message(node_socket):
+def handle_message(node_socket, node_address):
     global list_of_servers
     received_data = str(node_socket.recv(1024).decode())
     if received_data.startswith("join_request"):
-        message, ip, receive_port, server_port = received_data.split(':')
-        print(f"Join request {ip} {receive_port} {server_port}")
-        handle_new_server(node_socket, ip, receive_port, server_port)
+        message, receive_port, server_port = received_data.split(':')
+        print(f"Join request {node_address[0]} {receive_port} {server_port}")
+        handle_new_server(node_socket, node_address[0], receive_port, server_port)
     elif received_data.startswith("server_request"):
         send_available_server(node_socket)
     elif received_data.startswith("alive"):
@@ -119,7 +116,7 @@ def start_leader_server_thread():
       print(f"Leader server listening on {LEADER_ADDRESS}")
       while True:
         node_socket, node_address = server.accept()
-        handle_message(node_socket)
+        handle_message(node_socket, node_address)
     except Exception as err:
         print(f"Error in leader thread: {err}")
  

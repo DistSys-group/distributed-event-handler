@@ -49,7 +49,7 @@ def _update_likes():
 
 # Inform the leader that this is a new server node
 def connect_to_leader():
-    new_node_info = f'join_request\nnew_node:localhost:{NOTIFICATION_PORT}:{SERVER_PORT}'  # Replace with appropriate node info
+    new_node_info = f'join_request\nnew_node:{NOTIFICATION_PORT}:{SERVER_PORT}'  # Replace with appropriate node info
     try:
         send_message_to_one_node(new_node_info, LEADER_ADDRESS)
         print(f"Connected to leader node at {LEADER_ADDRESS}")

@@ -1,18 +1,18 @@
+import sys
 import socket
 import argparse
 import time
 
-LEADER_ADDRESS = ('localhost', 5001)
+LEADER_ADDRESS = ('svm-11.cs.helsinki.fi', 5001)
 SERVER_ADDRESS = None
 
 def push_like_button():
-    # Connect to Node 1
     global SERVER_ADDRESS
     if SERVER_ADDRESS is None:
         SERVER_ADDRESS = get_available_server()
     if SERVER_ADDRESS is not None:
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.connect((SERVER_ADDRESS))  # Connect to localhost and Node's port
+        client.connect((SERVER_ADDRESS))
     
         # Send a 'like' request to the server
         client.sendall(b'like')
@@ -26,7 +26,7 @@ def push_like_button():
 def get_available_server():
      data = None
      with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-        client_socket.connect(('localhost', LEADER_PORT))
+        client_socket.connect(LEADER_ADDRESS)
         client_socket.sendall(str("server_request").encode())
         data = client_socket.recv(1024)
 
@@ -60,7 +60,11 @@ def main():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Client for sending 'like' requests")
-    LEADER_PORT = 5001
+    parser.add_argument("-d", "--debug", action="store_true")
+    args = parser.parse_args()
+    if args.debug:
+        LEADER_ADDRESS = ('localhost', 5001)        
+    print(LEADER_ADDRESS);
     SERVER_ADDRESS = get_available_server()
     print(f'Server address: {SERVER_ADDRESS}')
 

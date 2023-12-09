@@ -1,3 +1,4 @@
+import sys
 import socket
 import threading
 import argparse
@@ -8,7 +9,7 @@ import time
 
 lock = threading.Lock()
 like_count = 0
-LEADER_ADDRESS = ('localhost', 5001)
+LEADER_ADDRESS = ('svm-11.cs.helsinki.fi', 5001)
 SERVER_PORT = 0
 NOTIFICATION_PORT = 0
 other_nodes = {}
@@ -156,7 +157,7 @@ def handle_notifications_thread():
 
 
 def user_interface():
-    global LEADER_ADDRESS, SERVER_PORT, NOTIFICATION_PORT
+    global SERVER_PORT, NOTIFICATION_PORT
     SERVER_PORT = int(input("Give a port number for receiving messages from clients:"))
     NOTIFICATION_PORT = int(input("Give a port number for receiving notifications:"))
     try_to_connect()
@@ -183,5 +184,9 @@ def try_to_connect():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Server for handling 'like' requests and notifications")
+    parser.add_argument("-d", "--debug", action="store_true")
+    args = parser.parse_args()
+    if args.debug:
+        LEADER_ADDRESS = ('localhost', 5001)        
     user_interface()
     

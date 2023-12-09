@@ -5,8 +5,7 @@ import time
 from server_class import Server
 from server_helper import send_message_to_all_nodes, send_message_to_one_node, handle_alive_message, handle_consensus_message
 
-LEADER_ADDRESS = ('localhost', 5001)
-LEADER_PORT = 5001
+LEADER_ADDRESS = ('', 5001)
 
 # Dictionary to store information about other server nodes: {node_id: (ip_address, port)}
 list_of_servers = {}
@@ -111,7 +110,7 @@ def handle_message(node_socket, node_address):
 def start_leader_server_thread():
     try:
       server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-      server.bind(('', LEADER_PORT))
+      server.bind(LEADER_ADDRESS)
       server.listen(5)
       print(f"Leader server listening on {LEADER_ADDRESS}")
       while True:

@@ -59,7 +59,6 @@ def connect_to_leader():
     
     
 def handle_notifications(other_node_socket):
-    global like_count
     data = other_node_socket.recv(1024)
     if data:
         decodedData = data.decode()
@@ -99,7 +98,7 @@ def handle_consensus_declaration(data):
     if like_value:
         with lock:
             like_count = like_value
-        print("Like value updated at {my_id} to {like_value}")
+        print(f"Like value updated at {my_id} to {like_value}")
     
     # Apply likes from consensus buffer!
 
@@ -111,7 +110,7 @@ def handle_leader_notification(data):
     if "server accepted" in data:
         my_id, prev_consensus = handle_accept_confirmation(data)
         with lock:
-            like_count = prev_consensus
+            like_count = int(prev_consensus)
         print(f"My id is {my_id}, likes set to {prev_consensus}")
     else: 
         # Parse the node information from the message
@@ -139,6 +138,7 @@ def handle_client_thread():
             handle_client(client_socket)
     except Exception as err:
         print("Error while starting client thread")
+        print(err)
 
 
 def handle_notifications_thread():

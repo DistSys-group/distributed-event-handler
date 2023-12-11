@@ -39,10 +39,15 @@ def health_check():
     responseIds = send_message_to_all_nodes(message, list_of_servers)
 
     # Remove failed connections immediately.
+    
+    dead_nodes = []
     for node_id in list_of_servers:
         if node_id not in responseIds:
-            remove_dead_node(node_id)
-
+            dead_nodes.append(node_id);
+    
+    for node_id in dead_nodes:
+        remove_dead_node(node_id)
+    
     # Alive-messages are sent with separate connections.
     # Wait 5 seconds and then check the health status.
     time.sleep(5)

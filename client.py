@@ -11,6 +11,7 @@ def push_like_button():
     if SERVER_ADDRESS is None:
         SERVER_ADDRESS = get_available_server()
     if SERVER_ADDRESS is not None:
+        print(f"Server address: {SERVER_ADDRESS}")
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             client.connect((SERVER_ADDRESS))

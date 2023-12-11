@@ -2,7 +2,7 @@ import sys
 import socket
 import threading
 import argparse
-from server_helper import parse_my_id_from_message, send_message_to_all_nodes, send_message_to_one_node, update_server_list, ports_are_valid
+from server_helper import handle_accept_confirmation, send_message_to_all_nodes, send_message_to_one_node, update_server_list, ports_are_valid
 from server_class import Server
 import time
 
@@ -62,15 +62,15 @@ def handle_notifications(other_node_socket):
     global like_count
     data = other_node_socket.recv(1024)
     if data:
-        decodedData = data.decode();
+        decodedData = data.decode()
         if decodedData.startswith("server_info"): # Means that a notification is coming from the leader
             handle_leader_notification(decodedData)
         elif decodedData.startswith("health_check"): # Health check message
-	        respond_to_healthcheck()
+            respond_to_healthcheck()
         elif decodedData.startswith("consensus_request"):
             respond_to_consensus_request()
-        elif decodedData.startswith("consensus_response"):
-            handle_consensus_response(decodedData)
+        elif decodedData.startswith("consensus_declaration"):
+            handle_consensus_declaration(decodedData)
         else: # Like event
             _update_likes()
 
@@ -80,37 +80,39 @@ def respond_to_healthcheck():
     global active_clients
     alive_message = f'alive\nmy_node_id:{my_id}:client_count:{len(active_clients)}'
     print(f"Sending health status to leader node at {LEADER_ADDRESS}")
-    try:
-        send_message_to_one_node(alive_message, LEADER_ADDRESS)
-    except Exception as err:
-        print(f"Unexpected {err=}, {type(err)=}")
+    send_message_to_one_node(alive_message, LEADER_ADDRESS)
 
 def respond_to_consensus_request():
     print("Leader requested like amount")
     global like_count
+
+    # Trigger buffering for new likes while consensus lasts!
+
     like_message = f'consensus_request_response\nmy_node_id:{my_id}:amount_of_likes:{like_count}'
     print(f"Sending current value of likes to leader node at {LEADER_ADDRESS}")
-    try:
-        send_message_to_one_node(like_message, LEADER_ADDRESS)
-    except Exception as err:
-        print(f"Unexpected {err=}, {type(err)=}")
+    send_message_to_one_node(like_message, LEADER_ADDRESS)
     
-def handle_consensus_response(data):
+def handle_consensus_declaration(data):
     global like_count, my_id
     parts = data.split(":")
     like_value = int(parts[1])
-    if like_value > like_count:
+    if like_value:
+        with lock:
+            like_count = like_value
         print("Like value updated at {my_id} to {like_value}")
-        like_count = like_value
+    
+    # Apply likes from consensus buffer!
+
 
 
 def handle_leader_notification(data):
-    global my_id
-    global other_nodes
+    global my_id, other_nodes, like_count
     print(f'Received notification from the leader')
     if "server accepted" in data:
-        my_id = parse_my_id_from_message(data)
-        print(f"My id is {my_id}")
+        my_id, prev_consensus = handle_accept_confirmation(data)
+        with lock:
+            like_count = prev_consensus
+        print(f"My id is {my_id}, likes set to {prev_consensus}")
     else: 
         # Parse the node information from the message
         other_nodes = update_server_list(data, NOTIFICATION_PORT)

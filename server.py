@@ -13,7 +13,7 @@ LEADER_ADDRESS = ('svm-11.cs.helsinki.fi', 5001)
 SERVER_PORT = 0
 NOTIFICATION_PORT = 0
 other_nodes = {}
-live_clients = []
+active_clients = []
 my_id = 0
 
 notifications_thread_status = "Not connected"
@@ -77,8 +77,8 @@ def handle_notifications(other_node_socket):
 
 def respond_to_healthcheck():
     print("Received health check from leader")
-    global live_clients
-    alive_message = f'alive\nmy_node_id:{my_id}:client_count:{len(live_clients)}'
+    global active_clients
+    alive_message = f'alive\nmy_node_id:{my_id}:client_count:{len(active_clients)}'
     print(f"Sending health status to leader node at {LEADER_ADDRESS}")
     try:
         send_message_to_one_node(alive_message, LEADER_ADDRESS)
@@ -131,8 +131,8 @@ def handle_client_thread():
         while True:
             client_socket, client_address = server.accept()
             # Not working, clients connects from different port each time
-            if not client_address in live_clients:
-                live_clients.append(client_address)
+            if not client_address[0] in active_clients:
+                active_clients.append(client_address[0])
             print(f"Connection from {client_address}")
             handle_client(client_socket)
     except Exception as err:

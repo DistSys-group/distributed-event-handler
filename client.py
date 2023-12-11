@@ -12,13 +12,15 @@ def push_like_button():
         SERVER_ADDRESS = get_available_server()
     if SERVER_ADDRESS is not None:
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.connect((SERVER_ADDRESS))
-    
-        # Send a 'like' request to the server
-        client.sendall(b'like')
-        print("Like button pushed.")
-
-        client.close()
+        try:
+            client.connect((SERVER_ADDRESS))
+            # Send a 'like' request to the server
+            client.sendall(b'like')
+            print("Like button pushed.")
+            client.close()            
+        except:
+            SERVER_ADDRESS = None    
+            print("Connection to server lost. Please try again.")
     else:
         print("All servers are busy, please wait a moment.")
 

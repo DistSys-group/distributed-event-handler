@@ -31,16 +31,16 @@ Report 15.12.2023
 ## Instructions
 
 1) Start the leader node in one terminal window:  
- `python3 leader.py`  
+ `python3 leader.py -d`  
  Leader runs in port **5001** by default. Don't give 5001 to other nodes.
 
 2) Start server nodes in separate windows:  
-  `python3 server.py`
+  `python3 server.py -d`
   * Give a port for client requests
   * Give a port for notifications
   * Note that the ports have to be individual for each server
 3) Start clients in separate windows:
-  `python3 client.py``
+  `python3 client.py -d`
   * Leader will give the client a port number for an available server
 4) Type `like` to send a like event which will be distributed across all server nodes. 
 

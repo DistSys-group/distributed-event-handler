@@ -12,7 +12,7 @@ LEADER_ADDRESS = ('', 5001)
 # Server: { server_id: int, address: Any, notification_port: int, client_port: int, status: str }
 list_of_servers = {}
 id_count = 0
-prev_consensus = 0
+prev_successful_consensus = 0
 
 def handle_new_server(node_socket, server_addr, notification_port, server_port):
     add_new_node_to_list(server_addr, notification_port, server_port)
@@ -21,8 +21,8 @@ def handle_new_server(node_socket, server_addr, notification_port, server_port):
 
 
 def send_accept_message(server: Server):
-    global prev_consensus
-    message = "server_info\n" + "server accepted\n"+'\n'.join([f"{server.node_id}:{server.address}:{server.client_port}:{server.notification_port}:{prev_consensus}"])
+    global prev_successful_consensus
+    message = "server_info\n" + "server accepted\n"+'\n'.join([f"{server.node_id}:{server.address}:{server.client_port}:{server.notification_port}:{prev_successful_consensus}"])
     address = (server.address, server.notification_port)
     send_message_to_one_node(message, (address))
 
@@ -57,27 +57,29 @@ def health_check():
 
 
 def establish_like_consensus():
-    print("Creating consensus of like amounts")
-    global list_of_servers, prev_consensus
+    print(f"Creating consensus of like amounts")
+    global list_of_servers, prev_successful_consensus
 
     message = "consensus_request\n"
     send_message_to_all_nodes(message, list_of_servers)
 
     # Consensus votes are sent with separate connections.
-    # Wait 5 seconds and calculate results.
-    time.sleep(5)
-    max_likes = 0  #Max value of likes is the best estimate we can have of the like value
+    # Wait x seconds and calculate results.
+    time.sleep(10)
+    # Max value of likes is the best estimate we can have of the like value
+    max_likes = prev_successful_consensus
     for node_id in list_of_servers:
         if max_likes < list_of_servers[node_id].likes:
             max_likes = list_of_servers[node_id].likes
 
     print("Like amount according to leader: {}".format(max_likes))
-    prev_consensus = max_likes
+    prev_successful_consensus = max_likes
     for node_id in list_of_servers:
         list_of_servers[node_id].likes = max_likes
 
     # Then we inform nodes about the correct like value
     inform_nodes_about_consensus(max_likes)
+    print(f"Consensus completed")
 
 
 def inform_nodes_about_consensus(like_value):
@@ -87,7 +89,7 @@ def inform_nodes_about_consensus(like_value):
 
 def consensus_check_timer():
     while True:
-        time.sleep(20)  #low value for demonstration purposes
+        time.sleep(30)  #low value for demonstration purposes
         establish_like_consensus()
         
 

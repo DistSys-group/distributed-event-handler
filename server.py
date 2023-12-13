@@ -1,25 +1,28 @@
+import sys
 import socket
 import threading
 import argparse
-from server_helper import parse_my_id_from_message, send_message_to_all_nodes, send_message_to_one_node, update_server_list, ports_are_valid
+from server_helper import handle_accept_confirmation, send_message_to_all_nodes, send_message_to_one_node, update_server_list, ports_are_valid
 from server_class import Server
 import time
 
-
-lock = threading.Lock()
-like_count = 0
-LEADER_ADDRESS = ('localhost', 5001)
+LEADER_ADDRESS = ('svm-11.cs.helsinki.fi', 5001)
 SERVER_PORT = 0
 NOTIFICATION_PORT = 0
+lock = threading.Lock()
+like_count = 0
+consensus_client_buffer = 0
+consensus_peer_buffer = 0
+isBuffering = False
 other_nodes = {}
-live_clients = []
+active_clients = []
 my_id = 0
 
 notifications_thread_status = "Not connected"
 client_thread_status = "Not connected"
 
 def handle_client(client_socket):
-    global like_count
+    global like_count, isBuffering
     
     while True:
         data = client_socket.recv(1024)
@@ -27,9 +30,11 @@ def handle_client(client_socket):
             break
         
         # Process like request
-        _update_likes()
-        print(f"Received like. Like count: {like_count}")
-        send_notifications(other_nodes)
+        if isBuffering:
+            _increment_buffered_likes('client')
+        else:    
+            _increment_likes()
+            send_notifications(other_nodes)
 
     client_socket.close()
 
@@ -40,16 +45,28 @@ def send_notifications(other_nodes):
     send_message_to_all_nodes(message, other_nodes)
 
 
-def _update_likes():
+def _increment_likes():
     global like_count
     with lock:
         like_count += 1
-        print(f"Received like notification. Liked count: {like_count}")
+        print(f"Received like. Liked count: {like_count}")
 
+
+def _increment_buffered_likes(buffer):
+    global consensus_client_buffer, consensus_peer_buffer
+    if buffer == 'client':
+        with lock:
+            consensus_client_buffer += 1
+            print(f"Buffered client like. Buffer count: {consensus_client_buffer}")
+    if buffer == 'peer':
+        with lock:
+            consensus_peer_buffer += 1
+            print(f"Buffered peer like. Buffer count: {consensus_peer_buffer}")
+        
 
 # Inform the leader that this is a new server node
 def connect_to_leader():
-    new_node_info = f'join_request\nnew_node:localhost:{NOTIFICATION_PORT}:{SERVER_PORT}'  # Replace with appropriate node info
+    new_node_info = f'join_request\nnew_node:{NOTIFICATION_PORT}:{SERVER_PORT}'  # Replace with appropriate node info
     try:
         send_message_to_one_node(new_node_info, LEADER_ADDRESS)
         print(f"Connected to leader node at {LEADER_ADDRESS}")
@@ -58,36 +75,87 @@ def connect_to_leader():
     
     
 def handle_notifications(other_node_socket):
-    global like_count
+    global isBuffering
     data = other_node_socket.recv(1024)
     if data:
-        decodedData = data.decode();
+        decodedData = data.decode()
         if decodedData.startswith("server_info"): # Means that a notification is coming from the leader
             handle_leader_notification(decodedData)
         elif decodedData.startswith("health_check"): # Health check message
-	        respond_to_healthcheck()        
+            respond_to_healthcheck()
+        elif decodedData.startswith("consensus_request"):
+            respond_to_consensus_request()
+        elif decodedData.startswith("consensus_declaration"):
+            handle_consensus_declaration(decodedData)
         else: # Like event
-            _update_likes()
+            if isBuffering:
+                _increment_buffered_likes('peer')
+            else:
+                _increment_likes()
 
 
 def respond_to_healthcheck():
     print("Received health check from leader")
-    global live_clients
-    alive_message = f'alive\nmy_node_id:{my_id}:client_count:{len(live_clients)}'
+    global active_clients
+    alive_message = f'alive\nmy_node_id:{my_id}:client_count:{len(active_clients)}'
     print(f"Sending health status to leader node at {LEADER_ADDRESS}")
-    try:
-        send_message_to_one_node(alive_message, LEADER_ADDRESS)
-    except Exception as err:
-        print(f"Unexpected {err=}, {type(err)=}")
+    send_message_to_one_node(alive_message, LEADER_ADDRESS)
+
+
+def respond_to_consensus_request():
+    print("Leader requested like amount")
+    global like_count, isBuffering
+
+    # Trigger buffering for new likes while consensus lasts
+    isBuffering = True
+    print(f"Consensus buffering started")
+
+    like_message = f'consensus_request_response\nmy_node_id:{my_id}:amount_of_likes:{like_count}'
+    print(f"Sending current value of likes to leader node at {LEADER_ADDRESS}")
+    send_message_to_one_node(like_message, LEADER_ADDRESS)
+
+
+def handle_buffered_likes():
+    global like_count, consensus_client_buffer, consensus_peer_buffer
+    buffered_likes_total = consensus_client_buffer + consensus_peer_buffer
+
+    if buffered_likes_total > 0:
+        with lock:
+            like_count += buffered_likes_total
+
+        print(f"Applied buffered likes: {buffered_likes_total}")
     
+        for i in range(consensus_client_buffer):
+            send_notifications(other_nodes)
+
+        with lock:
+            consensus_client_buffer = 0
+            consensus_peer_buffer = 0
+
+
+def handle_consensus_declaration(data):
+    global like_count, my_id, isBuffering
+    parts = data.split(":")
+    like_value = int(parts[1])
+    if like_value:
+        with lock:
+            like_count = like_value
+        print(f"Like value updated at {my_id} to {like_value}")
+    
+    # Apply likes from consensus buffer
+    isBuffering = False
+    print(f"Consensus buffering stopped")
+    handle_buffered_likes()
+
 
 def handle_leader_notification(data):
-    global my_id
-    global other_nodes
+    global my_id, other_nodes, like_count
     print(f'Received notification from the leader')
     if "server accepted" in data:
-        my_id = parse_my_id_from_message(data)
-        print(f"My id is {my_id}")
+        my_id, prev_consensus = handle_accept_confirmation(data)
+        with lock:
+            like_count = int(prev_consensus)
+        print(f"My id is {my_id}, likes set to {prev_consensus}")
     else: 
         # Parse the node information from the message
         other_nodes = update_server_list(data, NOTIFICATION_PORT)
@@ -108,12 +176,12 @@ def handle_client_thread():
         while True:
             client_socket, client_address = server.accept()
             # Not working, clients connects from different port each time
-            if not client_address in live_clients:
-                live_clients.append(client_address)
+            if not client_address[0] in active_clients:
+                active_clients.append(client_address[0])
             print(f"Connection from {client_address}")
             handle_client(client_socket)
     except Exception as err:
-        print("Error while starting client thread")
+        print(f"Error in the client thread: {err}")
 
 
 def handle_notifications_thread():
@@ -134,7 +202,7 @@ def handle_notifications_thread():
 
 
 def user_interface():
-    global LEADER_ADDRESS, SERVER_PORT, NOTIFICATION_PORT
+    global SERVER_PORT, NOTIFICATION_PORT
     SERVER_PORT = int(input("Give a port number for receiving messages from clients:"))
     NOTIFICATION_PORT = int(input("Give a port number for receiving notifications:"))
     try_to_connect()
@@ -161,5 +229,9 @@ def try_to_connect():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Server for handling 'like' requests and notifications")
+    parser.add_argument("-d", "--debug", action="store_true")
+    args = parser.parse_args()
+    if args.debug:
+        LEADER_ADDRESS = ('localhost', 5001)        
     user_interface()
     
